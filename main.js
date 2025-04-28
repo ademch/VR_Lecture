@@ -318,3 +318,49 @@ function init() {
 //     }
 
 //   }
+
+
+// window.webkitAudio
+// window.AudioContext
+
+// function LoadAudio()
+// {
+//     var ctx = window.AudioContext;
+
+//     var sound = {};
+
+//     sound.source = ctx.createBufferSource();
+//     sound.mainVolume = ctx.createGain();
+//     sound.biquadFilter = ctx.createBiquadFilter();
+
+//     sound.biquadFilter.type = "lowpass";
+//     sound.biquadFilter.frequency.value = 500;   // Hz
+//     sound.biquadFilter.gain.value = 25; // db
+
+//     sound.source.connect(sound.mainVolume);
+//     sound.mainVolume.connect(sound.biquadFilter);
+//     sound.biquadFilter.connect(ctx.destination);
+
+//     var request = new XMLHttpRequest();
+
+//     request.open("GET", "http://127.0.0.1:3000/music.ogg", true);
+//     request.responseType = "arraybuffer";
+//     request.onload = function(e)
+//     {
+//         ctx.decodeAudioData(this.response, function onSuccess(buffer))
+//         {
+//             sound.buffer = buffer;
+//             sound.source.buffer = bauffer;
+
+//             sound.source.start(ctx.current);
+//         }
+//     }
+//     request.send();
+
+//     sound.panner = ctx.createPanner();
+//     sound.mainVolume.connect(sound.panner);
+
+//     // p- is a global position from PA#2
+//     sound.panner.setPosition(p.x, p.y, p.z);
+
+// }
