@@ -7,7 +7,7 @@ let shProgram;                  // A shader program
 let spaceball;                  // A SimpleRotator object that lets the user rotate the view by mouse.
 let stereoCam;                  // Object holding stereo camera and its parameters
 
-let iTextureWebCam = -1;
+let iTextureWebCam = null;
 
 let video;
 
@@ -17,12 +17,18 @@ function ShaderProgram(name, program) {
     this.name = name;
     this.prog = program;
 
-    // Location of the attribute variable in the shader program.
+    // Location of the vertex attribute variable in the shader program.
     this.iAttribVertex = -1;
+    // Location of the texture coordinate attribute variable in the shader program.
+    this.iAttribTexCoords = -1;
     // Location of the uniform specifying a color for the primitive.
     this.iColor = -1;
     // Location of the uniform matrix representing the combined transformation.
     this.iModelViewProjectionMatrix = -1;
+    // Location of the uniform matrix representing the modelview transformation
+    this.iModelViewMatrix = -1;
+    // Location of the TMU0
+    this.iTMU0 = -1;
 
     this.Use = function() {
         gl.useProgram(this.prog);
@@ -38,13 +44,18 @@ function draw() {
     gl.clearColor(0,0,0,1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    gl.uniform1i(shProgram.iTMU0, 0);
+
     // PATH ZERO: DRAW ZERO PARALLAX WEBCAM
 
-    if (iTextureWebCam >= 0) {
+    if (iTextureWebCam) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, iTextureWebCam);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, gl.RGBA, gl.UNSIGNED_BYTE, video);
     }
 
     let matrOrth = m4.orthographic(0,1,0,1, 8,20);
+    gl.uniform1i(shProgram.bUseTexture, 1 );
     
     // TODO: Place your code here to draw webCam surface
 
@@ -73,6 +84,8 @@ function draw() {
 
     gl.enable(gl.POLYGON_OFFSET_FILL);
     gl.polygonOffset(1,0);
+
+    gl.uniform1i(shProgram.bUseTexture, 0 );
     
     gl.colorMask(true, false, false, true);
     gl.uniform4fv(shProgram.iColor, colorPolygon );
@@ -117,20 +130,24 @@ function initGL() {
     shProgram.Use();
 
     shProgram.iAttribVertex              = gl.getAttribLocation(prog, "vertex");
+    shProgram.iAttribTexCoords           = gl.getAttribLocation(prog, "tex");
     shProgram.iModelViewMatrix           = gl.getUniformLocation(prog, "ModelViewMatrix");
     shProgram.iProjectionMatrix          = gl.getUniformLocation(prog, "ProjectionMatrix");
     shProgram.iColor                     = gl.getUniformLocation(prog, "color");
+    shProgram.bUseTexture                = gl.getUniformLocation(prog, "bUseTexture");
+   
+    shProgram.iTMU0                      = gl.getUniformLocation(prog, "iTMU0");
 
     let data = {};
     
     CreateSurfaceData(data)
 
     surface = new Model('Surface');
-    surface.BufferData(data.verticesF32, data.indicesU16);
+    surface.BufferData(data.verticesF32, data.indicesU16, data.texcoordsF32);
 
     surfaceWebCam = new Model('SurfaceWebCam');
     // TODO: Place your code here to load two triangle geomtery
-
+    // surfaceWebCam.BufferData(???);
 
     stereoCam = new StereoCamera(
         .7,     // decimeters
@@ -140,6 +157,8 @@ function initGL() {
         8.0,    // decimeters
         20.0    // decimeters
     );
+
+    surface.idTextureDiffuse  = LoadTexture();
 
     gl.enable(gl.DEPTH_TEST);
 }
@@ -214,10 +233,17 @@ function init() {
         let track = stream.getVideoTracks()[0];
         let settings = track.getSettings();
 
-        iTextureWebCam = CreateWebCamTexture(settings.width, settings.height);
+        video.oncanplay = function () {
+            console.log("Video object is ready to render frames");
+            iTextureWebCam = CreateWebCamTexture(settings.width, settings.height);
+        };
 
-        video.play();
-    }  )
+        // Fired when the browser has metadata (width, height, duration, etc.)
+        video.onloadedmetadata = function () {
+            console.log("Video object metadata is loaded:", video.videoWidth, video.videoHeight);
+            video.play();
+        };
+    })
     .catch(function(err) {
         console.log(err.name + ": " + err.message);
     }
